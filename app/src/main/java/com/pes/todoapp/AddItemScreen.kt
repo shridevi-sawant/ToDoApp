@@ -15,9 +15,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -26,12 +29,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 
 // parent composable - stateful composable
 // parent holding state - State Hoisting
 @Composable
 fun AddItemScreen(modifier: Modifier = Modifier) {
+
+    println("AddItemScreen: Composition started...")
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        // executed only if key changes
+        // asynchronous task  - coroutine - executed by different thread
+        // fetch data from REST API
+        println("AddItemScreen: starting to fetch data- launchedEffect")
+    }
+
+    //
+    DisposableEffect(Unit) {
+        //registration
+        println("AddItemScreen: DisposableEffect - register ")
+
+        onDispose {
+            // executed after the composition is left
+            // unregistration
+            println("AddItemScreen: unregistration")
+        }
+    }
+
     // state - observable - recomposition is triggered when the value is changed
     var title by remember {
         mutableStateOf("")
@@ -83,6 +111,12 @@ fun AddItemScreen(modifier: Modifier = Modifier) {
 
                 Toast.makeText(ctx, "Adding Item $title",
                     Toast.LENGTH_LONG).show()
+
+                // launching coroutine manually
+                scope.launch {
+                    // async task - send data to API
+                    println("AddItemScreen: button click started the task")
+                }
         }) {
             Text("Add Item")
         }
