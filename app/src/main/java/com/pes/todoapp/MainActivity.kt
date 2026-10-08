@@ -1,8 +1,10 @@
 package com.pes.todoapp
 
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -39,6 +42,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,6 +56,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -72,14 +81,17 @@ class MainActivity : ComponentActivity() {
 
             ToDoAppTheme {
 
-                Scaffold(modifier = Modifier.fillMaxSize(),
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
                     floatingActionButton = {
                         FloatingActionButton(onClick = {
                             // navigate to 'addTodo'
                             navC.navigate("addTodo")
                         }) {
-                            Icon(Icons.Default.Add,
-                                contentDescription = null)
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null
+                            )
                         }
                     },
                     bottomBar = {
@@ -87,7 +99,8 @@ class MainActivity : ComponentActivity() {
                     },
                     topBar = {
                         MyTopAppBar(navController = navC)
-                             },) { innerPadding ->
+                    },
+                ) { innerPadding ->
 
                     NavHost(navC,
                         startDestination = "home",
@@ -149,6 +162,30 @@ fun MyTopAppBar(modifier: Modifier = Modifier,
                 navController: NavHostController) {
     val ctx = LocalContext.current
 
+    var isBackupStarted by remember {
+        mutableStateOf(false)
+    }
+
+
+
+    DisposableEffect(ctx) {
+        val receiver = object : BroadcastReceiver(){
+            override fun onReceive(p0: Context?, p1: Intent?) {
+                Log.d("MainActivity", "Received broadcast from service")
+                isBackupStarted = false
+            }
+
+        }
+
+        val filter = IntentFilter(BackupService.ACTION_BACKUP_DONE)
+        ContextCompat.registerReceiver(ctx, receiver,
+            filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+
+        onDispose {
+            ctx.unregisterReceiver(receiver)
+        }
+    }
+
     TopAppBar(title = { Text("ToDoApp") },
           actions = {
               IconButton(onClick = {
@@ -162,6 +199,21 @@ fun MyTopAppBar(modifier: Modifier = Modifier,
                   Icon(Icons.Default.Person,
                       contentDescription = "Profile")
               }
+              IconButton(
+                  enabled = !isBackupStarted,
+                  onClick = {
+                  // start backup service
+                  val backupIntent = Intent(ctx,
+                      BackupService::class.java)
+
+                  ctx.startService(backupIntent)
+                      isBackupStarted = true
+
+              }) {
+                  Icon(Icons.Default.Backup,
+                      contentDescription = "Backup")
+              }
+
           },
         navigationIcon = {
             IconButton(onClick = {
